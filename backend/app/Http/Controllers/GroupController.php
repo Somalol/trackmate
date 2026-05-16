@@ -8,13 +8,11 @@ use Illuminate\Support\Str;
 
 class GroupController extends Controller
 {
-    // A bejelentkezett felhasználó csoportjai
     public function index(Request $request)
     {
         return response()->json($request->user()->groups);
     }
 
-    // Új csoport létrehozása
     public function store(Request $request)
     {
         $fields = $request->validate([
@@ -23,28 +21,24 @@ class GroupController extends Controller
 
         $group = Group::create([
             'name' => $fields['name'],
-            'join_code' => strtoupper(Str::random(8)), // Pl: A7F9K2X1
-            'creator_id' => $request->user()->id // Javítva
+            'join_code' => strtoupper(Str::random(8)),
+            'creator_id' => $request->user()->id
         ]);
 
-        // A létrehozót egyből hozzáadjuk a csoporthoz tagként is
-        $group->users()->attach($request->user()->id); // Javítva
+        $group->users()->attach($request->user()->id);
 
         return response()->json($group, 201);
     }
 
-    // Egy csoport részletei (kategóriákkal, tranzakciókkal és tagokkal együtt)
     public function show(Group $group, Request $request)
     {
-        // Biztonsági ellenőrzés: benne van-e a felhasználó a csoportban?
-        if (!$group->users->contains($request->user()->id)) { // Javítva
+        if (!$group->users->contains($request->user()->id)) {
             return response()->json(['message' => 'Nincs jogosultságod ehhez a csoporthoz!'], 403);
         }
 
         return response()->json($group->load(['users', 'categories', 'transactions.category', 'transactions.user']));
     }
 
-    // Csatlakozás kód alapján (Ezt az api.php-ba is be kell majd kötni)
     public function join(Request $request)
     {
         $fields = $request->validate([
@@ -57,12 +51,27 @@ class GroupController extends Controller
             return response()->json(['message' => 'Érvénytelen csatlakozási kód!'], 404);
         }
 
-        if ($group->users->contains($request->user()->id)) { // Javítva
+        if ($group->users->contains($request->user()->id)) { 
             return response()->json(['message' => 'Már tagja vagy ennek a csoportnak!'], 400);
         }
 
-        $group->users()->attach($request->user()->id); // Javítva
+        $group->users()->attach($request->user()->id);
 
         return response()->json(['message' => 'Sikeres csatlakozás!', 'group' => $group]);
+    }
+
+    public function removeMember(Group $group, mixed $userId, Request $request)
+    {
+        if ($group->creator_id !== $request->user()->id) {
+            return response()->json(['message' => 'Csak a csoport létrehozója távolíthat el tagokat!'], 403);
+        }
+
+        if ($group->creator_id == $userId) {
+            return response()->json(['message' => 'A létrehozó nem távolíthatja el saját magát!'], 400);
+        }
+
+        $group->users()->detach($userId);
+
+        return response()->json(['message' => 'Tag sikeresen eltávolítva.']);
     }
 }

@@ -14,7 +14,7 @@ class AuthController extends Controller
         $fields = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed' // Frontendről kell egy password_confirmation mező is
+            'password' => 'required|string|min:8|confirmed' 
         ]);
 
         $user = User::create([
@@ -38,7 +38,6 @@ class AuthController extends Controller
             'password' => 'required|string'
         ]);
 
-        // Ellenőrizzük a jelszót
         if (!Auth::attempt($fields)) {
             return response()->json(['message' => 'Hibás e-mail vagy jelszó!'], 401);
         }

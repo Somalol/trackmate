@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    // Kategóriák lekérése egy adott csoporthoz (beleértve a globálisakat is)
     public function index(Request $request)
     {
         $groupId = $request->query('group_id');
@@ -19,7 +18,6 @@ class CategoryController extends Controller
         return response()->json($categories);
     }
 
-    // Saját kategória létrehozása egy csoporthoz
     public function store(Request $request)
     {
         $fields = $request->validate([
@@ -32,10 +30,8 @@ class CategoryController extends Controller
         return response()->json($category, 201);
     }
 
-    // Kategória törlése
     public function destroy(Category $category)
     {
-        // Globális kategóriát nem engedünk törölni az API-ból
         if (is_null($category->group_id)) {
             return response()->json(['message' => 'Alapértelmezett kategória nem törölhető!'], 403);
         }
