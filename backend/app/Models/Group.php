@@ -30,4 +30,9 @@ class Group extends Model
     {
         return $this->hasMany(Transaction::class);
     }
+
+    public function todoLists()
+    {
+        return $this->hasMany(TodoList::class);
+    }
 }

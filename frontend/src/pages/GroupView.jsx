@@ -2,6 +2,7 @@ import { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/axios';
 import AddTransaction from '../components/AddTransaction';
+import TodoManager from '../components/TodoManager';
 import { AuthContext } from '../context/AuthContext';
 
 export default function GroupView() {
@@ -9,15 +10,16 @@ export default function GroupView() {
     const { user } = useContext(AuthContext);
     const [group, setGroup] = useState(null);
     const [categories, setCategories] = useState([]);
-
+    
     const [filterType, setFilterType] = useState('all');
     const [filterUser, setFilterUser] = useState('all');
     const [filterCategory, setFilterCategory] = useState('all');
-
+    
     const [editingId, setEditingId] = useState(null);
     const [editFormData, setEditFormData] = useState({ title: '', amount: '', category_id: '' });
-
-    const [visibleCount, setVisibleCount] = useState(10);
+    
+    const [visibleCount, setVisibleCount] = useState(10); 
+    const [activeTab, setActiveTab] = useState('finance'); 
 
     const fetchGroupData = async () => {
         try {
@@ -121,96 +123,117 @@ export default function GroupView() {
                 </ul>
             </div>
 
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-                <div style={{ padding: '10px', background: '#e6ffe6' }}>
-                    <strong>Bevételek:</strong> +{totalIncome} Ft
-                </div>
-                <div style={{ padding: '10px', background: '#ffe6e6' }}>
-                    <strong>Kiadások:</strong> -{totalExpense} Ft
-                </div>
-                <div style={{ padding: '10px', background: '#e6f7ff' }}>
-                    <strong>Egyenleg:</strong> {balance} Ft
-                </div>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                <button 
+                    onClick={() => setActiveTab('finance')}
+                    style={{ fontWeight: activeTab === 'finance' ? 'bold' : 'normal', padding: '10px' }}
+                >
+                    💰 Pénzügyek
+                </button>
+                <button 
+                    onClick={() => setActiveTab('todos')}
+                    style={{ fontWeight: activeTab === 'todos' ? 'bold' : 'normal', padding: '10px' }}
+                >
+                    📝 Teendők és Listák
+                </button>
             </div>
 
-            <AddTransaction groupId={group.id} onTransactionAdded={fetchGroupData} />
-
-            <h2>Szűrés</h2>
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', border: '1px solid #ddd', padding: '10px' }}>
-                <div>
-                    <label>Típus: </label>
-                    <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setVisibleCount(10);}}>
-                        <option value="all">Mind</option>
-                        <option value="expense">Kiadás</option>
-                        <option value="income">Bevétel</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Tag: </label>
-                    <select value={filterUser} onChange={(e) => {setFilterUser(e.target.value); setVisibleCount(10);}}>
-                        <option value="all">Mindenki</option>
-                        {group.users.map(u => (
-                            <option key={u.id} value={u.id}>{u.name}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div>
-                    <label>Kategória: </label>
-                    <select value={filterCategory} onChange={(e) => {setFilterCategory(e.target.value); setVisibleCount(10);}}>
-                        <option value="all">Mind</option>
-                        {categories.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
-
-            <h2>Tranzakciók</h2>
-            {paginatedTransactions.length === 0 ? (
-                <p>Nincs a szűrésnek megfelelő rögzített költés.</p>
-            ) : (
+            {activeTab === 'finance' && (
                 <>
-                    <ul style={{ listStyleType: 'none', padding: 0 }}>
-                        {paginatedTransactions.map(t => (
-                            <li key={t.id} style={{ borderBottom: '1px solid #eee', padding: '10px 0' }}>
-                                {/* Szerkesztő űrlap vagy adatmegjelenítés... (Változatlan maradt) */}
-                                {editingId === t.id ? (
-                                    <form onSubmit={(e) => handleUpdate(e, t.id)}>
-                                        <input type="text" value={editFormData.title} onChange={(e) => setEditFormData({...editFormData, title: e.target.value})} required />
-                                        <input type="number" value={editFormData.amount} onChange={(e) => setEditFormData({...editFormData, amount: e.target.value})} required min="1" />
-                                        <select value={editFormData.category_id} onChange={(e) => setEditFormData({...editFormData, category_id: e.target.value})} required>
-                                            {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
-                                        </select>
-                                        <button type="submit">Mentés</button>
-                                        <button type="button" onClick={() => setEditingId(null)}>Mégse</button>
-                                    </form>
-                                ) : (
-                                    <div style={{ color: t.type === 'expense' ? 'red' : 'green' }}>
-                                        <strong>{t.title}</strong> - {t.amount} Ft <br/>
-                                        <small>{t.transaction_date} | Kategória: {t.category?.name} | Rögzítette: {t.user?.name}</small>
-                                        {t.user_id === user?.id && (
-                                            <div style={{ marginTop: '5px' }}>
-                                                <button onClick={() => startEdit(t)}>Szerkesztés</button>
-                                                <button onClick={() => handleDelete(t.id)}>Törlés</button>
+                    <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                        <div style={{ padding: '10px', background: '#e6ffe6' }}>
+                            <strong>Bevételek:</strong> +{totalIncome} Ft
+                        </div>
+                        <div style={{ padding: '10px', background: '#ffe6e6' }}>
+                            <strong>Kiadások:</strong> -{totalExpense} Ft
+                        </div>
+                        <div style={{ padding: '10px', background: '#e6f7ff' }}>
+                            <strong>Egyenleg:</strong> {balance} Ft
+                        </div>
+                    </div>
+
+                    <AddTransaction groupId={group.id} onTransactionAdded={fetchGroupData} />
+
+                    <h2>Szűrés</h2>
+                    <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', border: '1px solid #ddd', padding: '10px' }}>
+                        <div>
+                            <label>Típus: </label>
+                            <select value={filterType} onChange={(e) => {setFilterType(e.target.value); setVisibleCount(10);}}>
+                                <option value="all">Mind</option>
+                                <option value="expense">Kiadás</option>
+                                <option value="income">Bevétel</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label>Tag: </label>
+                            <select value={filterUser} onChange={(e) => {setFilterUser(e.target.value); setVisibleCount(10);}}>
+                                <option value="all">Mindenki</option>
+                                {group.users.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label>Kategória: </label>
+                            <select value={filterCategory} onChange={(e) => {setFilterCategory(e.target.value); setVisibleCount(10);}}>
+                                <option value="all">Mind</option>
+                                {categories.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <h2>Tranzakciók</h2>
+                    {paginatedTransactions.length === 0 ? (
+                        <p>Nincs a szűrésnek megfelelő rögzített költés.</p>
+                    ) : (
+                        <>
+                            <ul style={{ listStyleType: 'none', padding: 0 }}>
+                                {paginatedTransactions.map(t => (
+                                    <li key={t.id} style={{ borderBottom: '1px solid #eee', padding: '10px 0' }}>
+                                        {editingId === t.id ? (
+                                            <form onSubmit={(e) => handleUpdate(e, t.id)}>
+                                                <input type="text" value={editFormData.title} onChange={(e) => setEditFormData({...editFormData, title: e.target.value})} required />
+                                                <input type="number" value={editFormData.amount} onChange={(e) => setEditFormData({...editFormData, amount: e.target.value})} required min="1" />
+                                                <select value={editFormData.category_id} onChange={(e) => setEditFormData({...editFormData, category_id: e.target.value})} required>
+                                                    {categories.map(cat => (<option key={cat.id} value={cat.id}>{cat.name}</option>))}
+                                                </select>
+                                                <button type="submit">Mentés</button>
+                                                <button type="button" onClick={() => setEditingId(null)}>Mégse</button>
+                                            </form>
+                                        ) : (
+                                            <div style={{ color: t.type === 'expense' ? 'red' : 'green' }}>
+                                                <strong>{t.title}</strong> - {t.amount} Ft <br/>
+                                                <small>{t.transaction_date} | Kategória: {t.category?.name} | Rögzítette: {t.user?.name}</small>
+                                                {t.user_id === user?.id && (
+                                                    <div style={{ marginTop: '5px' }}>
+                                                        <button onClick={() => startEdit(t)}>Szerkesztés</button>
+                                                        <button onClick={() => handleDelete(t.id)}>Törlés</button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
-                                    </div>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                    {/* LAPOZÁS GOMB */}
-                    {visibleCount < filteredTransactions.length && (
-                        <button 
-                            onClick={() => setVisibleCount(prev => prev + 10)}
-                            style={{ display: 'block', width: '100%', padding: '10px', marginTop: '10px', background: '#e0e0e0', border: 'none', cursor: 'pointer' }}
-                        >
-                            Mutass még (még {filteredTransactions.length - visibleCount} db)
-                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                            {visibleCount < filteredTransactions.length && (
+                                <button 
+                                    onClick={() => setVisibleCount(prev => prev + 10)}
+                                    style={{ display: 'block', width: '100%', padding: '10px', marginTop: '10px', background: '#e0e0e0', border: 'none', cursor: 'pointer' }}
+                                >
+                                    Mutass még (még {filteredTransactions.length - visibleCount} db)
+                                </button>
+                            )}
+                        </>
                     )}
                 </>
+            )}
+
+            {activeTab === 'todos' && (
+                <TodoManager groupId={group.id} groupUsers={group.users} />
             )}
         </div>
     );
