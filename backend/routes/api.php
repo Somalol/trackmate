@@ -13,6 +13,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/profile-picture', [AuthController::class, 'uploadProfilePicture']);
     
     Route::post('/groups/join', [GroupController::class, 'join']);
     Route::delete('/groups/{group}/members/{userId}', [GroupController::class, 'removeMember']);

@@ -8,6 +8,10 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('trackmate_token') || null);
+
+    const updateUser = (updatedUserData) => {
+        setUser(updatedUserData);
+    };
     
     const navigate = useNavigate();
 
@@ -53,7 +57,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, register, logout }}>
+        <AuthContext.Provider value={{ user, token, login, register, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );
