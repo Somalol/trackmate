@@ -1,59 +1,69 @@
-import { createContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useState, useEffect } from 'react';
 import api from '../api/axios';
 
-// Létrehozzuk a Contextet
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('trackmate_token') || null);
-
-    const updateUser = (updatedUserData) => {
-        setUser(updatedUserData);
-    };
+    // A tokent a megszokott módon olvassuk be
+    const [token, setToken] = useState(() => localStorage.getItem('token') || null);
     
-    const navigate = useNavigate();
+    // ÚJ: A usert is a localStorage-ból olvassuk be induláskor, ha létezik
+    const [user, setUser] = useState(() => {
+        const savedUser = localStorage.getItem('user');
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
 
-    const login = async (formData) => {
-        try {
-            const response = await api.post('/login', formData);
-            setUser(response.data.user);
-            setToken(response.data.token);
-            localStorage.setItem('trackmate_token', response.data.token);
-            navigate('/');
-        } catch (error) {
-            console.error("Belépési hiba:", error.response?.data?.message);
-            alert("Hibás e-mail vagy jelszó!");
-        }
+
+    const login = async (credentials) => {
+        const response = await api.post('/login', credentials);
+        
+        const userToken = response.data.token || response.data.access_token; 
+        
+        const userData = response.data.user;
+        
+        localStorage.setItem('token', userToken);
+        localStorage.setItem('user', JSON.stringify(userData)); 
+        
+        api.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
+        
+        setToken(userToken);
+        setUser(userData);
     };
 
-
-    const register = async (formData) => {
-        try {
-            const response = await api.post('/register', formData);
-            setUser(response.data.user);
-            setToken(response.data.token);
-            localStorage.setItem('trackmate_token', response.data.token);
-            navigate('/'); 
-        } catch (error) {
-            console.error("Regisztrációs hiba:", error.response?.data);
-            alert("Hiba történt a regisztráció során.");
-        }
+    const register = async (userDataInputs) => {
+        const response = await api.post('/register', userDataInputs);
+        
+        const userToken = response.data.token || response.data.access_token;
+        const loggedInUser = response.data.user;
+        
+        localStorage.setItem('token', userToken);
+        localStorage.setItem('user', JSON.stringify(loggedInUser)); 
+        
+        // Itt is azonnal beállítjuk!
+        api.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
+        
+        setToken(userToken);
+        setUser(loggedInUser);
     };
-
 
     const logout = async () => {
         try {
             await api.post('/logout');
         } catch (error) {
-            console.error("Hiba a szerver oldali kijelentkezésnél", error);
+            console.error("Hiba a kijelentkezés során", error);
         } finally {
-            setUser(null);
+            // Mindent takarítunk a localStorage-ból is
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
             setToken(null);
-            localStorage.removeItem('trackmate_token');
-            navigate('/login');
+            setUser(null);
         }
+    };
+
+    // ÚJ / FRISSÍTETT: Amikor profilképet váltasz, a böngésző memóriáját is frissítjük!
+    const updateUser = (updatedUserData) => {
+        localStorage.setItem('user', JSON.stringify(updatedUserData));
+        setUser(updatedUserData);
     };
 
     return (

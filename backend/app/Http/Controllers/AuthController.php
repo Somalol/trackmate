@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
+use Cloudinary\Cloudinary;
+
 class AuthController extends Controller
 {
     public function register(Request $request)
@@ -68,16 +70,21 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        // Ha volt már régi képe, azt letöröljük a szerverről, hogy ne foglalja a helyet
-        if ($user->profile_picture) {
-            Storage::disk('public')->delete($user->profile_picture);
-        }
+        // 1. Inicializáljuk a Cloudinary-t a .env fájlba beírt linkkel
+        $cloudinary = new Cloudinary(env('CLOUDINARY_URL'));
 
-        // Elmentjük az újat a 'profile_pictures' mappába
-        $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+        // 2. Feltöltjük a fájlt a valós elérési útjáról (getRealPath)
+        $uploadResult = $cloudinary->uploadApi()->upload(
+            $request->file('profile_picture')->getRealPath(),
+            ['folder' => 'trackmate_profiles']
+        );
 
+        // 3. A válaszból kivesszük a biztonságos URL-t
+        $secureUrl = $uploadResult['secure_url'];
+
+        // 4. Elmentjük az adatbázisba
         $user->update([
-            'profile_picture' => $path
+            'profile_picture' => $secureUrl
         ]);
 
         return response()->json(['message' => 'Profilkép frissítve!', 'user' => $user]);
